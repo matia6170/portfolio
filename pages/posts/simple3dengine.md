@@ -1,7 +1,7 @@
 ---
-title: Simple 3D Engine
+title: A Simple 3D Engine
 date: 2023/12/26
-description: Game engine Test 
+description: A Simple 3D Engine
 tag: graphics, day project
 author: Matia Choi
 ---

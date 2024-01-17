@@ -1,0 +1,387 @@
+---
+title: STM32 BMP180 Driver
+date: 2024/01/09
+description: I2C driver for the BMP180 sensor from scratch.
+tag: embedded, stm32
+author: Matia Choi
+---
+
+## Introduction
+
+I wrote a driver for the BMP180 sensor which is a precise digital barometric pressure and temperature sensor designed by Bosch Sensortec. It communicates over I2C, offering accurate pressure measurements within a range of 300 to 1100 hPa and temperature readings from -40°C to +85°C. With low power consumption, factory-calibrated coefficients, and a compact form factor, it's widely used in applications like weather forecasting, altimeters, and drones, where precise environmental data is essential.
+
+I intend to create a drive logger in the future to track/log where I drive. One of the main reasons why I wanted to write a driver from scratch and use an STM32 microcontroller was because I wanted to move away from Arduinos and move onto something that "felt more professional". I felt like using an Arduino was kind of cheating with so many easy libraries I could use. It didn't help me understand how everything worked behind the scenes.
+
+This project can be found on my [GitHub](https://github.com/matia6170/STM32-BMP180-Driver/tree/main).
+
+## How I2C works
+
+**Two-Wire Serial Interface:** I2C uses only two wires, SDA (Serial Data Line) and SCL (Serial Clock Line), to communicate between devices. Each line has its own pull-up resistor to keep the line active high. One device acts as the master (initiates and controls the communication) and the other as the slave (responds to the master).
+
+**Addressing:** Each slave device has a unique address. When the master wants to communicate with a slave, it sends out the address of that device along with a bit indicating whether the operation is a read or write.
+
+**Start and Stop Conditions:** Communication is initiated by a start condition, where the SDA line transitions from high to low while SCL is high. It ends with a stop condition, where SDA transitions from low to high while SCL is high.
+
+**Clock Signal:** The SCL line is used by the master to synchronize data transmission. Data can only change when SCL is low and is read or sampled when SCL is high.
+
+**Data Transfer:** Data is transferred in 8-bit packets. After each packet, an acknowledgment (ACK) bit is used. If the receiver successfully receives the 8-bit data, it sends back an ACK bit (pulls SDA low). If not, a NACK (non-acknowledgment) is sent (SDA remains high).
+
+## Looking at the BMP180 Datasheet
+
+I started by reading through the BMP180 datasheet which consisted of electrical characteristics, absolute maximum rating, operation, global memory map, I2C interface, package, and legal disclaimer. The ones we're really interested in are the operation, global memory map, and I2C interface.
+
+## Setting up STM32CubeMX
+
+import Image from "next/image";
+
+<Image
+  src="/images/stm32-bmp180-driver/1-16-2024-61656 PM.png"
+  alt="Photo"
+  width={1125}
+  height={750}
+  priority
+  className="next-image"
+/>
+
+## Writing the header file
+
+### Defines
+
+```c
+#define BMP180_I2C_ADDR 0xEE  // 0x77 << 1
+#define BMP180_DEVICE_ID 0x55
+
+#define BMP180_REG_OUT_XLSB 0xF8
+#define BMP180_REG_OUT_LSB 0xF7
+#define BMP180_REG_OUT_MSB 0xF6
+#define BMP180_REG_CTRL_MEAS 0xF4
+#define BMP180_REG_SOFT_RESET 0xE0
+#define BMP180_REG_ID 0xD0
+#define BMP180_REG_CALIB_21 0xBF
+#define BMP180_REG_CALIB_0 0xAA
+```
+
+I began with defining the I2C address of the BMP180 sensor, and all the memory addresses. Going to the I2C section shows the device address and the global memory map shows us all the data registers and their addresses. Which I have defined in my header files.
+
+```c
+typedef enum {
+    CTRL_REG_TEMPERATURE = 0x2E,
+    CTRL_REG_PRESSURE_OSS_0 = 0x34,  // ultra low power
+    CTRL_REG_PRESSURE_OSS_1 = 0x74,  // standard
+    CTRL_REG_PRESSURE_OSS_2 = 0xB4,  // high res
+    CTRL_REG_PRESSURE_OSS_3 = 0xF4,  // ultra high res
+} CONTROL_REGISTER;
+```
+
+I also defined an enum to organize the control register values which are used to decide if you want to read a temperature value or a pressure value with various accuracy levels.
+
+```c
+typedef  struct {
+	// I2c handle
+	I2C_HandleTypeDef  *hi2c;
+	// param
+	HAL_StatusTypeDef  device_id_status;
+	int  OSS;
+	int32_t  B5;
+	// Raw data
+	uint32_t  raw_pressure, raw_temperature;
+	// Processed data;
+	uint32_t  pressure_Pa;
+	float  temp_C;
+	float  elevation_M;
+	// Calibration data struct
+	CALIBRATION_DATA  calibration_data;
+} BMP180;
+```
+
+This is the struct for the BMP180.
+
+### Functions
+
+Then, I started defining the functions.
+
+```c
+uint8_t BMP180_Init(BMP180 *device, I2C_HandleTypeDef *hi2c);
+// Read the calibration datas from the BMP180 EEPROM.
+HAL_StatusTypeDef BMP180_Read_Calibration_Data(BMP180 *device);
+// Set the measurement control.
+HAL_StatusTypeDef BMP180_SET_CTRL_MEAS(BMP180 *device, CONTROL_REGISTER control_register);
+// Read the raw temperature data.
+HAL_StatusTypeDef BMP180_ReadRawTemp(BMP180 *device);
+// Read the raw pressure data.
+HAL_StatusTypeDef BMP180_ReadRawPressure(BMP180 *device, CONTROL_REGISTER control_register);
+// Read the temperature in Celcius.
+HAL_StatusTypeDef BMP180_ReadTemp(BMP180 *device);
+// Read the pressure in Pascals.
+HAL_StatusTypeDef BMP180_ReadPressure(BMP180 *device, CONTROL_REGISTER control_register);
+// Read a single register.
+HAL_StatusTypeDef BMP180_ReadReg(BMP180 *device, uint8_t reg_addr, uint8_t *data);
+// Read multiple registers.
+HAL_StatusTypeDef BMP180_ReadRegs(BMP180 *device, uint8_t reg_addr, uint8_t *data, uint8_t size);
+// Write to a register.
+HAL_StatusTypeDef BMP180_WriteReg(BMP180 *device, uint8_t reg_addr, uint8_t *data);
+```
+
+The top function `BMP180_Init` is first used when initializing the device.
+The bottom three functions `BMP180_WriteReg`, `BMP180_ReadReg`, and `BMP180_ReadRegs` use `HAL_I2C_Mem_`....` to read and write to and from registers.
+The rest of the functions utilize the bottom three functions to read and write to and from the registers accordingly.
+
+## Writing the source file
+
+### `BMP180_Init()`
+
+```c
+uint8_t BMP180_Init(BMP180 *device, I2C_HandleTypeDef *hi2c) {
+    device->hi2c = hi2c;
+    device->temp_C = 0.0f;
+
+    uint8_t errNum = 0;
+    uint8_t regData;
+
+    // load device id.
+    HAL_StatusTypeDef deviceIdStatus = BMP180_ReadReg(device, BMP180_REG_ID, &regData);
+    device->device_id_status = deviceIdStatus;
+    if (deviceIdStatus != HAL_OK) return 2;
+
+    // Check device id
+    if (regData != BMP180_DEVICE_ID) return 3;
+
+    // load calibration data
+    if (BMP180_Read_Calibration_Data(device) != HAL_OK) return 4;
+
+    // OK
+    return 1;
+}
+```
+
+The initialization function fills out the BMP180 struct and reads the device ID from the sensor. We use the earlier defined register address to read the device ID. The device ID can be found on the datasheet and is used to verify if the correct sensor is connected.
+Then, we read the calibration data. The calibration data consists of constants that have been tuned to our sensor. We use these constants to calculate the raw data to an actual unit.
+
+### `BMP180_Read_Calibration_Data()`
+
+```c
+HAL_StatusTypeDef BMP180_Read_Calibration_Data(BMP180 *device) {
+    // Read the calibratoin data registers
+    uint8_t rawCalibratoinData[22];
+    HAL_StatusTypeDef status = BMP180_ReadRegs(device, BMP180_REG_CALIB_0, rawCalibratoinData, 22);
+    if (status != HAL_OK) return status;
+
+    // Pointer to the calibration data struct
+    CALIBRATION_DATA *calibration_data = &(device->calibration_data);
+    int16_t *ptr = (int16_t *)calibration_data;
+
+    // Iterate through the struct using pointer arithmetic
+    for (int i = 0; i < 11; i++) {
+        // Set the calibration data.
+        *(ptr + i) = (rawCalibratoinData[2 * i] << 8) | rawCalibratoinData[2 * i + 1];
+    }
+
+    return status;
+}
+```
+
+The BMP180 struct has another struct to store the calibration data. We first read the calibration data. Then we store it in the calibration struct by using pointer arithmetic.
+
+### `BMP180_SET_CTRL_MEAS()`
+
+```c
+HAL_StatusTypeDef BMP180_SET_CTRL_MEAS(BMP180 *device, CONTROL_REGISTER control_register) {
+    return BMP180_WriteReg(device, BMP180_REG_CTRL_MEAS, &control_register);
+}
+```
+
+This function writes the control word to a single register. This controls if you want to read a temperature value or if you want to read a pressure value with varying accuracy.
+
+### `BMP180_ReadRawTemp()`
+
+```c
+HAL_StatusTypeDef BMP180_ReadRawTemp(BMP180 *device) {
+    uint16_t UT;
+    uint8_t MSB, LSB;
+
+    HAL_StatusTypeDef status;
+
+    // Request for temperature data
+    BMP180_SET_CTRL_MEAS(device, CTRL_REG_TEMPERATURE);
+    HAL_Delay(5);
+
+    // Read data
+    status = BMP180_ReadReg(device, BMP180_REG_OUT_MSB, &MSB);
+    if (status != HAL_OK) return status;
+    status = BMP180_ReadReg(device, BMP180_REG_OUT_LSB, &LSB);
+    if (status != HAL_OK) return status;
+
+    UT = (MSB << 8) | LSB;
+
+    // Save data
+    device->raw_temperature = UT;
+
+    return status;
+}
+```
+
+This function reads two registers where the data value is stored. Since the value is 16-bit and the registers are 8-bit, we have to read two registers and shift the most significant byte 8 bits to the left.
+Then we store the data in the struct.
+
+### `BMP180_ReadRawPressure()`
+
+```c
+HAL_StatusTypeDef BMP180_ReadRawPressure(BMP180 *device, CONTROL_REGISTER control_register) {
+    uint32_t UP;
+    uint8_t XLSB, LSB, MSB;
+    HAL_StatusTypeDef status;
+
+    int OSS = device->OSS;
+
+
+    // Request for pressure data
+    BMP180_SET_CTRL_MEAS(device, control_register);
+
+    // Wait and set OSS accordingly
+    if (control_register == CTRL_REG_PRESSURE_OSS_0) {
+        OSS = 0;
+        HAL_Delay(5);
+    } else if (control_register == CTRL_REG_PRESSURE_OSS_1) {
+        OSS = 1;
+        HAL_Delay(8);
+    } else if (control_register == CTRL_REG_PRESSURE_OSS_2) {
+        OSS = 2;
+        HAL_Delay(14);
+    } else if (control_register == CTRL_REG_PRESSURE_OSS_3) {
+        OSS = 3;
+        HAL_Delay(26);
+    }
+
+    // Read data from 3 registers
+    status = BMP180_ReadReg(device, BMP180_REG_OUT_MSB, &MSB);
+    if (status != HAL_OK) return status;
+    status = BMP180_ReadReg(device, BMP180_REG_OUT_LSB, &LSB);
+    if (status != HAL_OK) return status;
+    status = BMP180_ReadReg(device, BMP180_REG_OUT_XLSB, &XLSB);
+    if (status != HAL_OK) return status;
+
+    UP = ((MSB << 16) | (LSB << 8) | XLSB) >> (8 - OSS);
+
+    // Save data
+    device->OSS = OSS;
+    device->raw_pressure = UP;
+
+    return status;
+}
+```
+
+This function reads three registers where the data value is stored. Since the pressure value can vary in accuracy, it has three more bits to choose its accuracy from. It can be between 19 and 16 bits. Therefore, we have to read 3 registers and shift the first by 2 and the second by a byte. Then we can do an OR operation with all three values.
+
+### `BMP180_ReadTemp()`
+
+```c
+HAL_StatusTypeDef BMP180_ReadTemp(BMP180 *device) {
+    CALIBRATION_DATA cd = device->calibration_data;
+    uint16_t UT;
+    HAL_StatusTypeDef status;
+
+    // Read raw temperature data
+    status = BMP180_ReadRawTemp(device);
+    if (status != HAL_OK) return status;
+    UT = device->raw_temperature;
+
+    // Convert Raw data
+    int32_t X1 = (UT - cd.AC6) * cd.AC5 / 0x8000;
+    int32_t X2 = cd.MC * 0x800 / (X1 + cd.MD);
+    int32_t B5 = X1 + X2;
+    int32_t T = (B5 + 8) / 0x10;
+
+    // Save data
+    device->B5 = B5;
+    device->temp_C = (float)T / 10.0f;
+
+    return status;
+}
+```
+
+This function calls `BMP180_ReadRawTemp()` to read the raw temperature for conversion. It uses the formula defined in the BMP180 datasheet and the calibration data to calculate and store the temperature in Celcius.
+
+### `BMP180_ReadPressure()`
+
+```c
+HAL_StatusTypeDef BMP180_ReadPressure(BMP180 *device, CONTROL_REGISTER control_register) {
+    uint32_t UP;
+    int32_t B5, T, B6, X1, X2, X3, B3, B7, p;
+    uint32_t B4;
+    int OSS;
+    CALIBRATION_DATA cd = device->calibration_data;
+    HAL_StatusTypeDef status;
+
+    // Read temp to get B5 value
+    BMP180_ReadTemp(device);
+    B5 = device->B5;
+
+    // Read raw pressure value
+    BMP180_ReadRawPressure(device, control_register);
+    OSS = device->OSS;
+    UP = device->raw_pressure;
+
+    // start conversion pressure
+    B6 = B5 - 4000;
+    X1 = ((int32_t)cd.B2 * ((B6 * B6) >> 12)) >> 11;
+    X2 = ((int32_t)cd.AC2 * B6) >> 11;
+    X3 = X1 + X2;
+    B3 = (((((int32_t)cd.AC1) * 4 + X3) << OSS) + 2) >> 2;
+
+    X1 = ((int32_t)cd.AC3 * B6) >> 13;
+    X2 = ((int32_t)cd.B1 * ((B6 * B6) >> 12)) >> 16;
+    X3 = ((X1 + X2) + 2) >> 2;
+
+    B4 = ((int32_t)cd.AC4 * (uint32_t)(X3 + 32768)) >> 15;
+    B7 = ((uint32_t)UP - B3) * (int32_t)(50000 >> OSS);
+
+    if (B7 < 0x80000000)
+        p = (B7 << 1) / B4;
+    else
+        p = (B7 / B4) << 1;
+
+    X1 = (p >> 8);
+    X1 *= X1;
+    X1 = (X1 * 3038) >> 16;
+    X2 = (-7357 * p) >> 16;
+    p += (X1 + X2 + 3791) >> 4;
+
+    // Save pressures in Pascals
+    device->pressure_Pa = p;
+    // Convert to elevation in meters
+    device->elevation_M = 44330 * (1 - pow((float)p / (float)PRESSURE_SEA_LEVEL_PA, 0.19029495718));
+
+    return status;
+}
+```
+
+This function calculates the pressure in Pascals and also calculates the elevation in Meters. This function calls `BMP180_ReadTemp()`. This is because the value used for converting raw pressure value in the Pascals requires temperature data. It also calls `BMP180_ReadRawPressure()` as well. Stores it into the BMP180 struct.
+
+### `BMP180_ReadReg()`
+
+```c
+HAL_StatusTypeDef BMP180_ReadReg(BMP180 *device, uint8_t reg_addr, uint8_t *data) {
+    // I2C-Handle, device-addr, loc-to-read-from, size-of-mem, output-ptr, how-many-bytes-to-read, time-out-delay
+    return HAL_I2C_Mem_Read(device->hi2c, BMP180_I2C_ADDR, reg_addr, I2C_MEMADD_SIZE_8BIT, data, 1, HAL_MAX_DELAY);
+}
+```
+
+### `BMP180_ReadRegs()`
+
+```c
+HAL_StatusTypeDef BMP180_ReadRegs(BMP180 *device, uint8_t reg_addr, uint8_t *data, uint8_t size) {
+    return HAL_I2C_Mem_Read(device->hi2c, BMP180_I2C_ADDR, reg_addr, I2C_MEMADD_SIZE_8BIT, data, size, HAL_MAX_DELAY);
+}
+```
+
+### `BMP180_WriteReg()`
+
+```c
+HAL_StatusTypeDef BMP180_WriteReg(BMP180 *device, uint8_t reg_addr, uint8_t *data) {
+    return HAL_I2C_Mem_Write(device->hi2c, BMP180_I2C_ADDR, reg_addr, I2C_MEMADD_SIZE_8BIT, data, 1, HAL_MAX_DELAY);
+}
+```
+
+These three functions use the built-in HAL functions to read and write from the registers.
+
+More info can be found on my [GitHub](https://github.com/matia6170/STM32-BMP180-Driver/tree/main).

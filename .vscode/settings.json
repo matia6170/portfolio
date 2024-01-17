@@ -4,6 +4,10 @@
             "language": "markdown",
             "scheme": "file",
             "pattern": "pages/posts/stm32-bmp180-driver.md"
+        },
+        {
+            "language": "markdown",
+            "scheme": "file"
         }
     ]
 }
