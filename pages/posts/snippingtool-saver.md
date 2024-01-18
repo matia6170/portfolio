@@ -6,13 +6,13 @@ tag: day project, tool, vbs
 author: Matia Choi
 ---
 
-At college, I useually use my gaming laptop connected to two monitors like a desktop with Windows 11. 
+At college, I usually use my gaming laptop connected to two monitors like a desktop with Windows 11. 
 While I was away from college at home during this Winter, I was using my Windows 10 ThinkPad to do some STM32 development.
-This is when I noticed that Windows 10 would not save my screenshots taken by snipping tool(Win + Shift + S) to Pictures/Screenshots automatically like Windows 11.
+This is when I noticed that Windows 10 would not save my screenshots taken by the snipping tool(Win + Shift + S) to Pictures/Screenshots automatically like Windows 11.
 I wrote a Visual Basic Script to do the task for me.
 
 
-Make sure to find the correct source directory first where window stores your screenshots temporarly.
+Make sure to find the correct source directory first where Windows stores your screenshots temporarily.
 
 The code can be found on my [Github](https://github.com/matia6170/Snipping-Tool-Auto-Saver).
 

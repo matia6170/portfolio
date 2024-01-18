@@ -6,6 +6,7 @@ tag: PID, control system, arduino
 author: Matia Choi
 ---
 
+**This website is under construction!**
 Story Draft 
 
 
@@ -21,7 +22,9 @@ First, a user sets the desired output. Then the error is calculated by finding t
 
 ## PID SOmething 
 
-![A black text on a white background Description automatically \n generated](https://static.ebs.co.kr/images/ebs/WAS-HOME/portal/upload/img/programinfo/person/per/1242723549377_49L83YjvJL.jpg)
+**image here**
 
 We can get a better understanding of the PID controller by looking at its equation. As mentioned earlier, it as three terms from proportional, integral, to derivative. The "K"s are the constants for each terms. "e(t)" is the error term. Given by the name, the proportional term just multiplies its constant by the error term. The integral term sums up the errors over time and multiplies by the constant. The derivative term measures the change in the error and multiplies by its constant. All of this is summed up and fed into the motor.
 
+
+**This website is under construction!**

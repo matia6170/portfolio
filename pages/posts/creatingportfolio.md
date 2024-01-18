@@ -5,4 +5,9 @@ description: Beginning of my log
 tag: web dev
 author: Matia Choi
 ---
-My portfolio built on nextjs
+
+**This website is under construction!**
+
+My portfolio built on Next.js. 
+
+I wanted to start keeping track of what I built in the past and the things I will create in the future.
