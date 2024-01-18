@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title><![CDATA[Your Name]]></title>
+        <description><![CDATA[Your Name]]></description>
+        <link>https://yoursite.com</link>
+        <generator>RSS for Node</generator>
+        <lastBuildDate>Thu, 18 Jan 2024 05:14:28 GMT</lastBuildDate>
+        <atom:link href="https://yoursite.com/feed.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[Bluetooth caller]]></title>
+            <description><![CDATA[Bluetooth calling device]]></description>
+            <link>/posts/bluetoothcaller</link>
+            <guid isPermaLink="true">/posts/bluetoothcaller</guid>
+            <dc:creator><![CDATA[Matia Choi]]></dc:creator>
+            <pubDate>Wed, 16 Aug 2023 05:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[My Portfolio]]></title>
+            <description><![CDATA[Beginning of my log]]></description>
+            <link>/posts/creatingportfolio</link>
+            <guid isPermaLink="true">/posts/creatingportfolio</guid>
+            <dc:creator><![CDATA[Matia Choi]]></dc:creator>
+            <pubDate>Wed, 27 Dec 2023 06:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Custom STM32 Dev Board]]></title>
+            <description><![CDATA[Custom STM32 Dev Board with KiCAD]]></description>
+            <link>/posts/customstm32devboard</link>
+            <guid isPermaLink="true">/posts/customstm32devboard</guid>
+            <dc:creator><![CDATA[Matia Choi]]></dc:creator>
+            <pubDate>Sun, 07 Jan 2024 06:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Using counterfeit STM32 Bluepills with STM32CubeMX]]></title>
+            <description><![CDATA[How to program and debug STM32 Bluepills with counterfeit STM32F103C8T6.]]></description>
+            <link>/posts/handling-couterfeit-bluepills</link>
+            <guid isPermaLink="true">/posts/handling-couterfeit-bluepills</guid>
+            <dc:creator><![CDATA[Matia Choi]]></dc:creator>
+            <pubDate>Sat, 06 Jan 2024 06:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[More Past Projects...]]></title>
+            <description><![CDATA[More past projects to be added to my archive.]]></description>
+            <link>/posts/morepastprojects</link>
+            <guid isPermaLink="true">/posts/morepastprojects</guid>
+            <dc:creator><![CDATA[Matia Choi]]></dc:creator>
+            <pubDate>Fri, 01 Jan 2016 06:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Driving Straight with PID]]></title>
+            <description><![CDATA[PID robot built using an Arudino]]></description>
+            <link>/posts/pidbot</link>
+            <guid isPermaLink="true">/posts/pidbot</guid>
+            <dc:creator><![CDATA[Matia Choi]]></dc:creator>
+            <pubDate>Mon, 31 Jul 2023 05:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Snipping Tool Saver for Windows 10]]></title>
+            <description><![CDATA[Visual Basic Script for saving Snipping Tool screenshots.]]></description>
+            <link>/posts/snippingtool-saver</link>
+            <guid isPermaLink="true">/posts/snippingtool-saver</guid>
+            <dc:creator><![CDATA[Matia Choi]]></dc:creator>
+            <pubDate>Mon, 08 Jan 2024 06:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[PWM with STM32]]></title>
+            <description><![CDATA[Testing PWM functionality with STM32]]></description>
+            <link>/posts/stm32-pwm</link>
+            <guid isPermaLink="true">/posts/stm32-pwm</guid>
+            <dc:creator><![CDATA[Matia Choi]]></dc:creator>
+            <pubDate>Sun, 07 Jan 2024 06:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[A Simple 3D Engine]]></title>
+            <description><![CDATA[A Simple 3D Engine]]></description>
+            <link>/posts/simple3dengine</link>
+            <guid isPermaLink="true">/posts/simple3dengine</guid>
+            <dc:creator><![CDATA[Matia Choi]]></dc:creator>
+            <pubDate>Tue, 26 Dec 2023 06:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[STM32 BMP180 Driver]]></title>
+            <description><![CDATA[I2C driver for the BMP180 sensor from scratch.]]></description>
+            <link>/posts/stm32-bmp180-driver</link>
+            <guid isPermaLink="true">/posts/stm32-bmp180-driver</guid>
+            <dc:creator><![CDATA[Matia Choi]]></dc:creator>
+            <pubDate>Tue, 09 Jan 2024 06:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Traning on the MINIST Dataset]]></title>
+            <description><![CDATA[Traning on the MINIST Dataset using tensorflow]]></description>
+            <link>/posts/traning-mnist</link>
+            <guid isPermaLink="true">/posts/traning-mnist</guid>
+            <dc:creator><![CDATA[Matia Choi]]></dc:creator>
+            <pubDate>Tue, 26 Dec 2023 06:00:00 GMT</pubDate>
+        </item>
+    </channel>
+</rss>
